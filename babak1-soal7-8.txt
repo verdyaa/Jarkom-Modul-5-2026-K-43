@@ -1,0 +1,59 @@
+==========================================================================
+Script dan Verifikasi Soal 7 & 8 (Babak 1 Selesai) - Kelompok K-43
+==========================================================================
+
+--------------------------------------------------------------------------
+SOAL 7: MEMBANGUNKAN MAGI
+--------------------------------------------------------------------------
+Layanan listener netcat di perangkat MAGI:
+1. Magi-Casper (10.85.4.58)       : TCP Port 5000
+2. Magi-Balthasar (10.85.4.59)    : TCP Port 5000 dan 5001
+3. Magi-Melchior (10.85.4.60)     : TCP Port 5000
+
+Script di masing-masing node MAGI:
+- /root/magi-casper.sh:
+  nohup bash -c 'while true; do nc -l -p 5000 >> /root/received.log 2>&1; done' >/dev/null 2>&1 &
+
+- /root/magi-balthasar.sh:
+  nohup bash -c 'while true; do nc -l -p 5000 >> /root/received_5000.log 2>&1; done' >/dev/null 2>&1 &
+  nohup bash -c 'while true; do nc -l -p 5001 >> /root/received_5001.log 2>&1; done' >/dev/null 2>&1 &
+
+- /root/magi-melchior.sh:
+  nohup bash -c 'while true; do nc -l -p 5000 >> /root/received.log 2>&1; done' >/dev/null 2>&1 &
+
+Uji pengiriman pesan dari Lilith (10.85.4.74):
+echo "Hello Casper" | nc -q 1 10.85.4.58 5000
+echo "Hello Balthasar 5000" | nc -q 1 10.85.4.59 5000
+echo "Hello Balthasar 5001" | nc -q 1 10.85.4.59 5001
+echo "Hello Melchior" | nc -q 1 10.85.4.60 5000
+
+Hasil verifikasi di tiap node:
+- Di Magi-Casper     : cat /root/received.log -> "Hello Casper"
+- Di Magi-Balthasar  : cat /root/received_5000.log -> "Hello Balthasar 5000"
+                       cat /root/received_5001.log -> "Hello Balthasar 5001"
+- Di Magi-Melchior   : cat /root/received.log -> "Hello Melchior"
+
+--------------------------------------------------------------------------
+SOAL 8: MENGENALI KONDISI NORMAL
+--------------------------------------------------------------------------
+1. Pen-Pen (10.85.3.194):
+   Port 80 menjawab: "Welcome to Pen-pen"
+   Command listener:
+   nohup bash -c 'while true; do echo "Welcome to $(hostname)" | nc -l -p 80 -q 1; done' >/dev/null 2>&1 &
+
+2. Tokyo3-Core (10.85.4.106):
+   Port 80 menjawab: "Welcome to Tokyo3-Core"
+   Port 8080 menjawab: "syifa imutz"
+   Command listener:
+   nohup bash -c 'while true; do echo "Welcome to $(hostname)" | nc -l -p 80 -q 1; done' >/dev/null 2>&1 &
+   nohup bash -c 'while true; do echo "syifa imutz" | nc -l -p 8080 -q 1; done' >/dev/null 2>&1 &
+
+Uji verifikasi dari Lilith:
+- nc -w 2 10.85.3.194 80
+  Output: Welcome to Pen-pen
+- nc -w 2 10.85.4.106 80
+  Output: Welcome to Tokyo3-Core
+- nc -w 2 10.85.4.106 8080
+  Output: syifa imutz
+- nc -v -w 2 10.85.4.106 22
+  Output: Connection refused (langsung gagal, tidak menggantung)
