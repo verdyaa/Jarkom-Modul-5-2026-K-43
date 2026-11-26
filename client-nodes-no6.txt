@@ -1,0 +1,374 @@
+==========================================================================
+Script Konfigurasi Client Nodes (Soal 6) - Kelompok K-43
+Operation Geofront - Modul 5 Komunikasi Data & Jaringan Komputer 2026
+==========================================================================
+
+Aturan Alamat Glosarium:
+- Gateway adalah IP usable pertama subnet.
+- Node di switch diberi IP usable berikutnya sesuai urutan kiri ke kanan pada gambar topologi.
+- Disimpan permanen agar bertahan setelah restart (via /root/<nama>.sh, /root/.bashrc hook, dan /etc/network/interfaces).
+
+==========================================================================
+DAFTAR PEMETAAN IP PER SWITCH & CONTAINER (TOTAL 25 CLIENT NODES)
+==========================================================================
+1.  Quarters       : 10.85.0.2/23   (GW: 10.85.0.1 - Rei)       [Switch-Quarters]
+2.  Comm-Net       : 10.85.2.2/24   (GW: 10.85.2.1 - Hikari)    [Switch-Comm]
+3.  Hangar-Crew    : 10.85.3.2/25   (GW: 10.85.3.1 - Yui)       [Switch-Hangar]
+4.  Sachiel        : 10.85.3.130/26 (GW: 10.85.3.129 - Kensuke) [Switch-Bunker]
+5.  Pen-pen        : 10.85.3.194/27 (GW: 10.85.3.193 - Maya)    [Switch-Medic]
+6.  Medic-Bay      : 10.85.3.195/27 (GW: 10.85.3.193 - Maya)    [Switch-Medic]
+7.  Relay-Node     : 10.85.3.226/27 (GW: 10.85.3.225 - Kaworu)  [Switch-Relay]
+8.  Garden-Sfaff   : 10.85.4.2/27   (GW: 10.85.4.1 - Shinji)    [Switch-Garden]
+9.  Dock-Crew      : 10.85.4.34/28  (GW: 10.85.4.33 - Mari)     [Switch-Dock]
+10. Entry-Plug     : 10.85.4.50/29  (GW: 10.85.4.49 - Ritsuko)  [Switch-Lab]
+11. Dummy-Plug     : 10.85.4.51/29  (GW: 10.85.4.49 - Ritsuko)  [Switch-Lab]
+12. Magi-Casper    : 10.85.4.58/29  (GW: 10.85.4.57 - Fuyutsuki)[Switch-Terminal]
+13. Magi-Balthasar : 10.85.4.59/29  (GW: 10.85.4.57 - Fuyutsuki)[Switch-Terminal]
+14. Magi-Melchior  : 10.85.4.60/29  (GW: 10.85.4.57 - Fuyutsuki)[Switch-Terminal]
+15. Unit-01        : 10.85.4.66/29  (GW: 10.85.4.65 - Misato)   [Switch-Cage]
+16. Unit-02        : 10.85.4.67/29  (GW: 10.85.4.65 - Misato)   [Switch-Cage]
+17. Unit-00        : 10.85.4.68/29  (GW: 10.85.4.65 - Misato)   [Switch-Cage]
+18. Lilith         : 10.85.4.74/29  (GW: 10.85.4.73 - Toji)     [Switch-Dogma]
+19. Adam           : 10.85.4.75/29  (GW: 10.85.4.73 - Toji)     [Switch-Dogma]
+20. Zaruel         : 10.85.4.82/29  (GW: 10.85.4.81 - Shigeru)  [Switch-Monolith]
+21. Armisael       : 10.85.4.83/29  (GW: 10.85.4.81 - Shigeru)  [Switch-Monolith]
+22. Radar-Array    : 10.85.4.90/29  (GW: 10.85.4.89 - Makoto)   [Switch-Radar]
+23. Archive-Vault  : 10.85.4.98/30  (GW: 10.85.4.97 - Asuka)    [Switch-Archive]
+24. Spy            : 10.85.4.102/30 (GW: 10.85.4.101 - Kaji)    [Switch-Intel]
+25. Tokyo3-Core    : 10.85.4.106/30 (GW: 10.85.4.105 - Gendo)   [Switch-Cmd]
+
+==========================================================================
+SCRIPT PER CONTAINER
+==========================================================================
+
+# 1. Quarters
+cat << 'EOF' > /root/quarters.sh
+#!/bin/bash
+ip addr flush dev eth0
+ip addr add 10.85.0.2/23 dev eth0
+ip link set eth0 up
+ip route replace default via 10.85.0.1
+echo "nameserver 192.168.122.1" > /etc/resolv.conf
+echo "nameserver 8.8.8.8" >> /etc/resolv.conf
+EOF
+chmod +x /root/quarters.sh && /root/quarters.sh
+grep -q "/root/quarters.sh" /root/.bashrc 2>/dev/null || echo "[ -f /root/quarters.sh ] && /root/quarters.sh >/dev/null 2>&1" >> /root/.bashrc
+
+# 2. Comm-Net
+cat << 'EOF' > /root/comm-net.sh
+#!/bin/bash
+ip addr flush dev eth0
+ip addr add 10.85.2.2/24 dev eth0
+ip link set eth0 up
+ip route replace default via 10.85.2.1
+echo "nameserver 192.168.122.1" > /etc/resolv.conf
+echo "nameserver 8.8.8.8" >> /etc/resolv.conf
+EOF
+chmod +x /root/comm-net.sh && /root/comm-net.sh
+grep -q "/root/comm-net.sh" /root/.bashrc 2>/dev/null || echo "[ -f /root/comm-net.sh ] && /root/comm-net.sh >/dev/null 2>&1" >> /root/.bashrc
+
+# 3. Hangar-Crew
+cat << 'EOF' > /root/hangar-crew.sh
+#!/bin/bash
+ip addr flush dev eth0
+ip addr add 10.85.3.2/25 dev eth0
+ip link set eth0 up
+ip route replace default via 10.85.3.1
+echo "nameserver 192.168.122.1" > /etc/resolv.conf
+echo "nameserver 8.8.8.8" >> /etc/resolv.conf
+EOF
+chmod +x /root/hangar-crew.sh && /root/hangar-crew.sh
+grep -q "/root/hangar-crew.sh" /root/.bashrc 2>/dev/null || echo "[ -f /root/hangar-crew.sh ] && /root/hangar-crew.sh >/dev/null 2>&1" >> /root/.bashrc
+
+# 4. Sachiel
+cat << 'EOF' > /root/sachiel.sh
+#!/bin/bash
+ip addr flush dev eth0
+ip addr add 10.85.3.130/26 dev eth0
+ip link set eth0 up
+ip route replace default via 10.85.3.129
+echo "nameserver 192.168.122.1" > /etc/resolv.conf
+echo "nameserver 8.8.8.8" >> /etc/resolv.conf
+EOF
+chmod +x /root/sachiel.sh && /root/sachiel.sh
+grep -q "/root/sachiel.sh" /root/.bashrc 2>/dev/null || echo "[ -f /root/sachiel.sh ] && /root/sachiel.sh >/dev/null 2>&1" >> /root/.bashrc
+
+# 5. Pen-pen
+cat << 'EOF' > /root/pen-pen.sh
+#!/bin/bash
+ip addr flush dev eth0
+ip addr add 10.85.3.194/27 dev eth0
+ip link set eth0 up
+ip route replace default via 10.85.3.193
+echo "nameserver 192.168.122.1" > /etc/resolv.conf
+echo "nameserver 8.8.8.8" >> /etc/resolv.conf
+EOF
+chmod +x /root/pen-pen.sh && /root/pen-pen.sh
+grep -q "/root/pen-pen.sh" /root/.bashrc 2>/dev/null || echo "[ -f /root/pen-pen.sh ] && /root/pen-pen.sh >/dev/null 2>&1" >> /root/.bashrc
+
+# 6. Medic-Bay
+cat << 'EOF' > /root/medic-bay.sh
+#!/bin/bash
+ip addr flush dev eth0
+ip addr add 10.85.3.195/27 dev eth0
+ip link set eth0 up
+ip route replace default via 10.85.3.193
+echo "nameserver 192.168.122.1" > /etc/resolv.conf
+echo "nameserver 8.8.8.8" >> /etc/resolv.conf
+EOF
+chmod +x /root/medic-bay.sh && /root/medic-bay.sh
+grep -q "/root/medic-bay.sh" /root/.bashrc 2>/dev/null || echo "[ -f /root/medic-bay.sh ] && /root/medic-bay.sh >/dev/null 2>&1" >> /root/.bashrc
+
+# 7. Relay-Node
+cat << 'EOF' > /root/relay-node.sh
+#!/bin/bash
+ip addr flush dev eth0
+ip addr add 10.85.3.226/27 dev eth0
+ip link set eth0 up
+ip route replace default via 10.85.3.225
+echo "nameserver 192.168.122.1" > /etc/resolv.conf
+echo "nameserver 8.8.8.8" >> /etc/resolv.conf
+EOF
+chmod +x /root/relay-node.sh && /root/relay-node.sh
+grep -q "/root/relay-node.sh" /root/.bashrc 2>/dev/null || echo "[ -f /root/relay-node.sh ] && /root/relay-node.sh >/dev/null 2>&1" >> /root/.bashrc
+
+# 8. Garden-Sfaff
+cat << 'EOF' > /root/garden-sfaff.sh
+#!/bin/bash
+ip addr flush dev eth0
+ip addr add 10.85.4.2/27 dev eth0
+ip link set eth0 up
+ip route replace default via 10.85.4.1
+echo "nameserver 192.168.122.1" > /etc/resolv.conf
+echo "nameserver 8.8.8.8" >> /etc/resolv.conf
+EOF
+chmod +x /root/garden-sfaff.sh && /root/garden-sfaff.sh
+grep -q "/root/garden-sfaff.sh" /root/.bashrc 2>/dev/null || echo "[ -f /root/garden-sfaff.sh ] && /root/garden-sfaff.sh >/dev/null 2>&1" >> /root/.bashrc
+
+# 9. Dock-Crew
+cat << 'EOF' > /root/dock-crew.sh
+#!/bin/bash
+ip addr flush dev eth0
+ip addr add 10.85.4.34/28 dev eth0
+ip link set eth0 up
+ip route replace default via 10.85.4.33
+echo "nameserver 192.168.122.1" > /etc/resolv.conf
+echo "nameserver 8.8.8.8" >> /etc/resolv.conf
+EOF
+chmod +x /root/dock-crew.sh && /root/dock-crew.sh
+grep -q "/root/dock-crew.sh" /root/.bashrc 2>/dev/null || echo "[ -f /root/dock-crew.sh ] && /root/dock-crew.sh >/dev/null 2>&1" >> /root/.bashrc
+
+# 10. Entry-Plug
+cat << 'EOF' > /root/entry-plug.sh
+#!/bin/bash
+ip addr flush dev eth0
+ip addr add 10.85.4.50/29 dev eth0
+ip link set eth0 up
+ip route replace default via 10.85.4.49
+echo "nameserver 192.168.122.1" > /etc/resolv.conf
+echo "nameserver 8.8.8.8" >> /etc/resolv.conf
+EOF
+chmod +x /root/entry-plug.sh && /root/entry-plug.sh
+grep -q "/root/entry-plug.sh" /root/.bashrc 2>/dev/null || echo "[ -f /root/entry-plug.sh ] && /root/entry-plug.sh >/dev/null 2>&1" >> /root/.bashrc
+
+# 11. Dummy-Plug
+cat << 'EOF' > /root/dummy-plug.sh
+#!/bin/bash
+ip addr flush dev eth0
+ip addr add 10.85.4.51/29 dev eth0
+ip link set eth0 up
+ip route replace default via 10.85.4.49
+echo "nameserver 192.168.122.1" > /etc/resolv.conf
+echo "nameserver 8.8.8.8" >> /etc/resolv.conf
+EOF
+chmod +x /root/dummy-plug.sh && /root/dummy-plug.sh
+grep -q "/root/dummy-plug.sh" /root/.bashrc 2>/dev/null || echo "[ -f /root/dummy-plug.sh ] && /root/dummy-plug.sh >/dev/null 2>&1" >> /root/.bashrc
+
+# 12. Magi-Casper
+cat << 'EOF' > /root/magi-casper.sh
+#!/bin/bash
+ip addr flush dev eth0
+ip addr add 10.85.4.58/29 dev eth0
+ip link set eth0 up
+ip route replace default via 10.85.4.57
+echo "nameserver 192.168.122.1" > /etc/resolv.conf
+echo "nameserver 8.8.8.8" >> /etc/resolv.conf
+EOF
+chmod +x /root/magi-casper.sh && /root/magi-casper.sh
+grep -q "/root/magi-casper.sh" /root/.bashrc 2>/dev/null || echo "[ -f /root/magi-casper.sh ] && /root/magi-casper.sh >/dev/null 2>&1" >> /root/.bashrc
+
+# 13. Magi-Balthasar
+cat << 'EOF' > /root/magi-balthasar.sh
+#!/bin/bash
+ip addr flush dev eth0
+ip addr add 10.85.4.59/29 dev eth0
+ip link set eth0 up
+ip route replace default via 10.85.4.57
+echo "nameserver 192.168.122.1" > /etc/resolv.conf
+echo "nameserver 8.8.8.8" >> /etc/resolv.conf
+EOF
+chmod +x /root/magi-balthasar.sh && /root/magi-balthasar.sh
+grep -q "/root/magi-balthasar.sh" /root/.bashrc 2>/dev/null || echo "[ -f /root/magi-balthasar.sh ] && /root/magi-balthasar.sh >/dev/null 2>&1" >> /root/.bashrc
+
+# 14. Magi-Melchior
+cat << 'EOF' > /root/magi-melchior.sh
+#!/bin/bash
+ip addr flush dev eth0
+ip addr add 10.85.4.60/29 dev eth0
+ip link set eth0 up
+ip route replace default via 10.85.4.57
+echo "nameserver 192.168.122.1" > /etc/resolv.conf
+echo "nameserver 8.8.8.8" >> /etc/resolv.conf
+EOF
+chmod +x /root/magi-melchior.sh && /root/magi-melchior.sh
+grep -q "/root/magi-melchior.sh" /root/.bashrc 2>/dev/null || echo "[ -f /root/magi-melchior.sh ] && /root/magi-melchior.sh >/dev/null 2>&1" >> /root/.bashrc
+
+# 15. Unit-01
+cat << 'EOF' > /root/unit-01.sh
+#!/bin/bash
+ip addr flush dev eth0
+ip addr add 10.85.4.66/29 dev eth0
+ip link set eth0 up
+ip route replace default via 10.85.4.65
+echo "nameserver 192.168.122.1" > /etc/resolv.conf
+echo "nameserver 8.8.8.8" >> /etc/resolv.conf
+EOF
+chmod +x /root/unit-01.sh && /root/unit-01.sh
+grep -q "/root/unit-01.sh" /root/.bashrc 2>/dev/null || echo "[ -f /root/unit-01.sh ] && /root/unit-01.sh >/dev/null 2>&1" >> /root/.bashrc
+
+# 16. Unit-02
+cat << 'EOF' > /root/unit-02.sh
+#!/bin/bash
+ip addr flush dev eth0
+ip addr add 10.85.4.67/29 dev eth0
+ip link set eth0 up
+ip route replace default via 10.85.4.65
+echo "nameserver 192.168.122.1" > /etc/resolv.conf
+echo "nameserver 8.8.8.8" >> /etc/resolv.conf
+EOF
+chmod +x /root/unit-02.sh && /root/unit-02.sh
+grep -q "/root/unit-02.sh" /root/.bashrc 2>/dev/null || echo "[ -f /root/unit-02.sh ] && /root/unit-02.sh >/dev/null 2>&1" >> /root/.bashrc
+
+# 17. Unit-00
+cat << 'EOF' > /root/unit-00.sh
+#!/bin/bash
+ip addr flush dev eth0
+ip addr add 10.85.4.68/29 dev eth0
+ip link set eth0 up
+ip route replace default via 10.85.4.65
+echo "nameserver 192.168.122.1" > /etc/resolv.conf
+echo "nameserver 8.8.8.8" >> /etc/resolv.conf
+EOF
+chmod +x /root/unit-00.sh && /root/unit-00.sh
+grep -q "/root/unit-00.sh" /root/.bashrc 2>/dev/null || echo "[ -f /root/unit-00.sh ] && /root/unit-00.sh >/dev/null 2>&1" >> /root/.bashrc
+
+# 18. Lilith
+cat << 'EOF' > /root/lilith.sh
+#!/bin/bash
+ip addr flush dev eth0
+ip addr add 10.85.4.74/29 dev eth0
+ip link set eth0 up
+ip route replace default via 10.85.4.73
+echo "nameserver 192.168.122.1" > /etc/resolv.conf
+echo "nameserver 8.8.8.8" >> /etc/resolv.conf
+EOF
+chmod +x /root/lilith.sh && /root/lilith.sh
+grep -q "/root/lilith.sh" /root/.bashrc 2>/dev/null || echo "[ -f /root/lilith.sh ] && /root/lilith.sh >/dev/null 2>&1" >> /root/.bashrc
+
+# 19. Adam
+cat << 'EOF' > /root/adam.sh
+#!/bin/bash
+ip addr flush dev eth0
+ip addr add 10.85.4.75/29 dev eth0
+ip link set eth0 up
+ip route replace default via 10.85.4.73
+echo "nameserver 192.168.122.1" > /etc/resolv.conf
+echo "nameserver 8.8.8.8" >> /etc/resolv.conf
+EOF
+chmod +x /root/adam.sh && /root/adam.sh
+grep -q "/root/adam.sh" /root/.bashrc 2>/dev/null || echo "[ -f /root/adam.sh ] && /root/adam.sh >/dev/null 2>&1" >> /root/.bashrc
+
+# 20. Zaruel
+cat << 'EOF' > /root/zaruel.sh
+#!/bin/bash
+ip addr flush dev eth0
+ip addr add 10.85.4.82/29 dev eth0
+ip link set eth0 up
+ip route replace default via 10.85.4.81
+echo "nameserver 192.168.122.1" > /etc/resolv.conf
+echo "nameserver 8.8.8.8" >> /etc/resolv.conf
+EOF
+chmod +x /root/zaruel.sh && /root/zaruel.sh
+grep -q "/root/zaruel.sh" /root/.bashrc 2>/dev/null || echo "[ -f /root/zaruel.sh ] && /root/zaruel.sh >/dev/null 2>&1" >> /root/.bashrc
+
+# 21. Armisael
+cat << 'EOF' > /root/armisael.sh
+#!/bin/bash
+ip addr flush dev eth0
+ip addr add 10.85.4.83/29 dev eth0
+ip link set eth0 up
+ip route replace default via 10.85.4.81
+echo "nameserver 192.168.122.1" > /etc/resolv.conf
+echo "nameserver 8.8.8.8" >> /etc/resolv.conf
+EOF
+chmod +x /root/armisael.sh && /root/armisael.sh
+grep -q "/root/armisael.sh" /root/.bashrc 2>/dev/null || echo "[ -f /root/armisael.sh ] && /root/armisael.sh >/dev/null 2>&1" >> /root/.bashrc
+
+# 22. Radar-Array
+cat << 'EOF' > /root/radar-array.sh
+#!/bin/bash
+ip addr flush dev eth0
+ip addr add 10.85.4.90/29 dev eth0
+ip link set eth0 up
+ip route replace default via 10.85.4.89
+echo "nameserver 192.168.122.1" > /etc/resolv.conf
+echo "nameserver 8.8.8.8" >> /etc/resolv.conf
+EOF
+chmod +x /root/radar-array.sh && /root/radar-array.sh
+grep -q "/root/radar-array.sh" /root/.bashrc 2>/dev/null || echo "[ -f /root/radar-array.sh ] && /root/radar-array.sh >/dev/null 2>&1" >> /root/.bashrc
+
+# 23. Archive-Vault
+cat << 'EOF' > /root/archive-vault.sh
+#!/bin/bash
+ip addr flush dev eth0
+ip addr add 10.85.4.98/30 dev eth0
+ip link set eth0 up
+ip route replace default via 10.85.4.97
+echo "nameserver 192.168.122.1" > /etc/resolv.conf
+echo "nameserver 8.8.8.8" >> /etc/resolv.conf
+EOF
+chmod +x /root/archive-vault.sh && /root/archive-vault.sh
+grep -q "/root/archive-vault.sh" /root/.bashrc 2>/dev/null || echo "[ -f /root/archive-vault.sh ] && /root/archive-vault.sh >/dev/null 2>&1" >> /root/.bashrc
+
+# 24. Spy
+cat << 'EOF' > /root/spy.sh
+#!/bin/bash
+ip addr flush dev eth0
+ip addr add 10.85.4.102/30 dev eth0
+ip link set eth0 up
+ip route replace default via 10.85.4.101
+echo "nameserver 192.168.122.1" > /etc/resolv.conf
+echo "nameserver 8.8.8.8" >> /etc/resolv.conf
+EOF
+chmod +x /root/spy.sh && /root/spy.sh
+grep -q "/root/spy.sh" /root/.bashrc 2>/dev/null || echo "[ -f /root/spy.sh ] && /root/spy.sh >/dev/null 2>&1" >> /root/.bashrc
+
+# 25. Tokyo3-Core
+cat << 'EOF' > /root/tokyo3-core.sh
+#!/bin/bash
+ip addr flush dev eth0
+ip addr add 10.85.4.106/30 dev eth0
+ip link set eth0 up
+ip route replace default via 10.85.4.105
+echo "nameserver 192.168.122.1" > /etc/resolv.conf
+echo "nameserver 8.8.8.8" >> /etc/resolv.conf
+EOF
+chmod +x /root/tokyo3-core.sh && /root/tokyo3-core.sh
+grep -q "/root/tokyo3-core.sh" /root/.bashrc 2>/dev/null || echo "[ -f /root/tokyo3-core.sh ] && /root/tokyo3-core.sh >/dev/null 2>&1" >> /root/.bashrc
+
+==========================================================================
+TEST PING SOAL 6:
+==========================================================================
+Di node Unit-01:
+ip -br a
+ping -c 3 10.85.4.65   # Ping ke Gateway Misato
