@@ -1,0 +1,199 @@
+==========================================================================
+Script Modul 6
+==========================================================================
+gendou.sh
+--------------------------------------------------------------------------
+cat <<'EOF' > /root/gendou.sh
+#!/usr/bin/env bash
+set -euo pipefail
+
+WAN_IF="${1:-eth0}"
+CIDR="10.85.0.0/16"
+
+sysctl -w net.ipv4.ip_forward=1 >/dev/null
+grep -q '^net.ipv4.ip_forward=1' /etc/sysctl.conf || echo 'net.ipv4.ip_forward=1' >> /etc/sysctl.conf
+
+iptables -F && iptables -t nat -F && iptables -X
+iptables -P INPUT DROP
+iptables -P FORWARD DROP
+iptables -P OUTPUT ACCEPT
+
+iptables -A INPUT -i lo -j ACCEPT
+iptables -A OUTPUT -o lo -j ACCEPT
+iptables -A INPUT -i "$WAN_IF" -p udp --sport 67 --dport 68 -j ACCEPT
+
+iptables -A INPUT -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
+iptables -A FORWARD -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
+iptables -A FORWARD -s "$CIDR" -o "$WAN_IF" -m conntrack --ctstate NEW,ESTABLISHED,RELATED -j ACCEPT
+iptables -A FORWARD -s "$CIDR" -d "$CIDR" ! -o "$WAN_IF" -j ACCEPT
+iptables -A INPUT -s "$CIDR" -j ACCEPT
+
+iptables -t nat -A POSTROUTING -s "$CIDR" -o "$WAN_IF" -j MASQUERADE
+iptables -S
+EOF
+chmod +x /root/gendou.sh
+
+# Sesuaikan interface sesuai kabel di topologi GNS3 kamu:
+# contoh: eth0 = NAT1, eth1 = Switch-Cmd (10.85.4.105/30), eth2 = Link Fuyutsuki (10.85.4.109/30), dst.
+dhclient eth0 2>/dev/null || true
+ip addr add 10.85.4.105/30 dev eth1 2>/dev/null || true
+ip addr add 10.85.4.109/30 dev eth2 2>/dev/null || true
+ip addr add 10.85.4.113/30 dev eth3 2>/dev/null || true
+ip addr add 10.85.4.117/30 dev eth4 2>/dev/null || true
+ip addr add 10.85.4.121/30 dev eth5 2>/dev/null || true
+ip addr add 10.85.4.125/30 dev eth6 2>/dev/null || true
+ip addr add 10.85.4.129/30 dev eth7 2>/dev/null || true
+ip addr add 10.85.4.133/30 dev eth8 2>/dev/null || true
+ip addr add 10.85.4.137/30 dev eth9 2>/dev/null || true
+
+# Rute ke cabang di bawah Gendou (ganti next-hop sesuai IP lawan link /30 masing-masing)
+ip route replace 10.85.4.56/29 via 10.85.4.110
+ip route replace 10.85.4.80/29 via 10.85.4.114
+ip route replace 10.85.4.64/29 via 10.85.4.118
+ip route replace 10.85.4.100/30 via 10.85.4.122
+ip route replace 10.85.4.96/30 via 10.85.4.126
+ip route replace 10.85.3.224/27 via 10.85.4.130
+ip route replace 10.85.3.0/25 via 10.85.4.134
+ip route replace 10.85.4.0/27 via 10.85.4.138
+
+/root/gendou.sh eth0
+ip -br addr
+
+==========================================================================================================
+Fuyu.sh
+--------------------
+sysctl -w net.ipv4.ip_forward=1
+ip addr flush dev eth0; ip addr add 10.85.4.110/30 dev eth0; ip link set eth0 up
+ip addr flush dev eth1; ip addr add 10.85.4.141/30 dev eth1; ip link set eth1 up
+ip addr flush dev eth2; ip addr add 10.85.4.145/30 dev eth2; ip link set eth2 up
+ip addr flush dev eth3; ip addr add 10.85.4.57/29 dev eth3; ip link set eth3 up
+ip route replace default via 10.85.4.109
+ip route replace 10.85.3.192/27 via 10.85.4.142
+ip route replace 10.85.4.72/29 via 10.85.4.146
+ip -br addr && ip route
+=============================================================================================================
+sige.sh
+------------------------
+sysctl -w net.ipv4.ip_forward=1
+ip addr flush dev eth0; ip addr add 10.85.4.114/30 dev eth0; ip link set eth0 up
+ip addr flush dev eth1; ip addr add 10.85.4.81/29 dev eth1; ip link set eth1 up
+ip addr flush dev eth2; ip addr add 10.85.4.149/30 dev eth2; ip link set eth2 up
+ip route replace default via 10.85.4.113
+ip route replace 10.85.4.88/29 via 10.85.4.150
+ip -br addr && ip route
+=============================================================================================================
+misato.sh
+--------------------------
+sysctl -w net.ipv4.ip_forward=1
+ip addr flush dev eth0; ip addr add 10.85.4.118/30 dev eth0; ip link set eth0 up
+ip addr flush dev eth1; ip addr add 10.85.4.65/29 dev eth1; ip link set eth1 up
+ip route replace default via 10.85.4.117
+ip -br addr && ip route
+============================================================================================================
+kaji.sh
+--------------------------
+sysctl -w net.ipv4.ip_forward=1
+ip addr flush dev eth0; ip addr add 10.85.4.122/30 dev eth0; ip link set eth0 up
+ip addr flush dev eth1; ip addr add 10.85.4.101/30 dev eth1; ip link set eth1 up
+ip route replace default via 10.85.4.121
+ip -br addr && ip route
+==============================================================================================================
+asuka.sh
+--------------------------
+sysctl -w net.ipv4.ip_forward=1
+ip addr flush dev eth0; ip addr add 10.85.4.126/30 dev eth0; ip link set eth0 up
+ip addr flush dev eth1; ip addr add 10.85.4.97/30 dev eth1; ip link set eth1 up
+ip addr flush dev eth2; ip addr add 10.85.4.153/30 dev eth2; ip link set eth2 up
+ip addr flush dev eth3; ip addr add 10.85.4.157/30 dev eth3; ip link set eth3 up
+ip route replace default via 10.85.4.125
+ip route replace 10.85.4.48/29 via 10.85.4.154
+ip route replace 10.85.3.128/26 via 10.85.4.158
+ip -br addr && ip route
+===============================================================================================================
+hikari.sh
+----------------------------
+sysctl -w net.ipv4.ip_forward=1
+ip addr flush dev eth0; ip addr add 10.85.4.130/30 dev eth0; ip link set eth0 up
+ip addr flush dev eth1; ip addr add 10.85.2.1/24 dev eth1; ip link set eth1 up
+ip addr flush dev eth2; ip addr add 10.85.4.161/30 dev eth2; ip link set eth2 up
+ip route replace default via 10.85.4.129
+ip route replace 10.85.3.224/27 via 10.85.4.162
+ip -br addr && ip route
+===============================================================================================================
+yui.sh
+------------------------------
+sysctl -w net.ipv4.ip_forward=1
+ip addr flush dev eth0; ip addr add 10.85.4.134/30 dev eth0; ip link set eth0 up
+ip addr flush dev eth1; ip addr add 10.85.3.1/25 dev eth1; ip link set eth1 up
+ip addr flush dev eth2; ip addr add 10.85.4.165/30 dev eth2; ip link set eth2 up
+ip addr flush dev eth3; ip addr add 10.85.4.169/30 dev eth3; ip link set eth3 up
+ip route replace default via 10.85.4.133
+ip route replace 10.85.4.32/28 via 10.85.4.166
+ip route replace 10.85.0.0/23 via 10.85.4.170
+ip -br addr && ip route
+==================================================================================================================
+maya
+
+sysctl -w net.ipv4.ip_forward=1
+ip addr flush dev eth0; ip addr add 10.85.4.142/30 dev eth0; ip link set eth0 up
+ip addr flush dev eth1; ip addr add 10.85.3.193/27 dev eth1; ip link set eth1 up
+ip route replace default via 10.85.4.141
+ip -br addr && ip route
+------------------------------------------
+toji
+
+
+sysctl -w net.ipv4.ip_forward=1
+ip addr flush dev eth0; ip addr add 10.85.4.146/30 dev eth0; ip link set eth0 up
+ip addr flush dev eth1; ip addr add 10.85.4.73/29 dev eth1; ip link set eth1 up
+ip route replace default via 10.85.4.145
+ip -br addr && ip route
+-------------------------------------------
+makoto
+
+sysctl -w net.ipv4.ip_forward=1
+ip addr flush dev eth0; ip addr add 10.85.4.150/30 dev eth0; ip link set eth0 up
+ip addr flush dev eth1; ip addr add 10.85.4.89/29 dev eth1; ip link set eth1 up
+ip route replace default via 10.85.4.149
+ip -br addr && ip route
+-------------------------------------------
+ritsuko
+
+sysctl -w net.ipv4.ip_forward=1
+ip addr flush dev eth0; ip addr add 10.85.4.154/30 dev eth0; ip link set eth0 up
+ip addr flush dev eth1; ip addr add 10.85.4.49/29 dev eth1; ip link set eth1 up
+ip route replace default via 10.85.4.153
+ip -br addr && ip route
+-----------------------------------------
+Kensuke 
+
+sysctl -w net.ipv4.ip_forward=1
+ip addr flush dev eth0; ip addr add 10.85.4.158/30 dev eth0; ip link set eth0 up
+ip addr flush dev eth1; ip addr add 10.85.3.129/26 dev eth1; ip link set eth1 up
+ip route replace default via 10.85.4.157
+ip -br addr && ip route
+-----------------------------------------
+kaworu
+
+sysctl -w net.ipv4.ip_forward=1
+ip addr flush dev eth0; ip addr add 10.85.4.162/30 dev eth0; ip link set eth0 up
+ip addr flush dev eth1; ip addr add 10.85.3.225/27 dev eth1; ip link set eth1 up
+ip route replace default via 10.85.4.161
+ip -br addr && ip route
+----------------------------------------
+mari
+
+sysctl -w net.ipv4.ip_forward=1
+ip addr flush dev eth0; ip addr add 10.85.4.166/30 dev eth0; ip link set eth0 up
+ip addr flush dev eth1; ip addr add 10.85.4.33/28 dev eth1; ip link set eth1 up
+ip route replace default via 10.85.4.165
+ip -br addr && ip route
+---------------------------------------
+rei 
+
+sysctl -w net.ipv4.ip_forward=1
+ip addr flush dev eth0; ip addr add 10.85.4.170/30 dev eth0; ip link set eth0 up
+ip addr flush dev eth1; ip addr add 10.85.0.1/23 dev eth1; ip link set eth1 up
+ip route replace default via 10.85.4.169
+ip -br addr && ip route
+--------------------------------------
