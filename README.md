@@ -32,33 +32,33 @@ Setiap router dikonfigurasi dengan IP statis dan `net.ipv4.ip_forward=1`. Router
 ### A. Tampilan `ip -br a` pada 17 Router
 | No | Router | Screenshot |
 |:--:|:-------|:-----------|
-| 1 | **Gendow** | ![Gendow](Images/1.png) |
-| 2 | **Fuyutsuki** | ![Fuyutsuki](Images/2.png) |
-| 3 | **Maya** | ![Maya](Images/3.png) |
-| 4 | **Toji** | ![Toji](Images/4.png) |
-| 5 | **Shigeru** | ![Shigeru](Images/5.png) |
-| 6 | **Makoto** | ![Makoto](Images/6.png) |
-| 7 | **Misato** | ![Misato](Images/Pasted%20image.png) |
-| 8 | **Kaji** | ![Kaji](Images/Pasted%20image%20(2).png) |
-| 9 | **Asuka** | ![Asuka](Images/Pasted%20image%20(3).png) |
-| 10 | **Ritsuko** | ![Ritsuko](Images/Pasted%20image%20(4).png) |
-| 11 | **Kensuke** | ![Kensuke](Images/Pasted%20image%20(5).png) |
-| 12 | **Hikari** | ![Hikari](Images/Pasted%20image%20(6).png) |
-| 13 | **Kowaru** | ![Kowaru](Images/Pasted%20image%20(7).png) |
-| 14 | **Yui** | ![Yui](Images/Pasted%20image%20(8).png) |
-| 15 | **Mari** | ![Mari](Images/Pasted%20image%20(9).png) |
-| 16 | **Rei** | ![Rei](Images/Pasted%20image%20(10).png) |
-| 17 | **Shinji** | ![Shinji](Images/Pasted%20image%20(11).png) |
+| 1 | **Gendow** | ![Gendow](Images/soal2-ip-gendow.png) |
+| 2 | **Fuyutsuki** | ![Fuyutsuki](Images/soal2-ip-fuyutsuki.png) |
+| 3 | **Maya** | ![Maya](Images/soal2-ip-maya.png) |
+| 4 | **Toji** | ![Toji](Images/soal2-ip-toji.png) |
+| 5 | **Shigeru** | ![Shigeru](Images/soal2-ip-shigeru.png) |
+| 6 | **Makoto** | ![Makoto](Images/soal2-ip-makoto.png) |
+| 7 | **Misato** | ![Misato](Images/soal2-ip-misato.png) |
+| 8 | **Kaji** | ![Kaji](Images/soal2-ip-kaji.png) |
+| 9 | **Asuka** | ![Asuka](Images/soal2-ip-asuka.png) |
+| 10 | **Ritsuko** | ![Ritsuko](Images/soal2-ip-ritsuko.png) |
+| 11 | **Kensuke** | ![Kensuke](Images/soal2-ip-kensuke.png) |
+| 12 | **Hikari** | ![Hikari](Images/soal2-ip-hikari.png) |
+| 13 | **Kowaru** | ![Kowaru](Images/soal2-ip-kowaru.png) |
+| 14 | **Yui** | ![Yui](Images/soal2-ip-yui.png) |
+| 15 | **Mari** | ![Mari](Images/soal2-ip-mari.png) |
+| 16 | **Rei** | ![Rei](Images/soal2-ip-rei.png) |
+| 17 | **Shinji** | ![Shinji](Images/soal2-ip-shinji.png) |
 
 ### B. Ping Dua Ujung Tiap Link Router-ke-Router
 - **Gendow ke 7 Router Cabang**:  
-  ![Ping Gendow](Images/Pasted%20image%20(12).png)
+  ![Ping Gendow](Images/soal2-ping-gendow-branch.png)
 - **Cabang Fuyutsuki & Shigeru**:  
-  ![Ping Fuyutsuki & Shigeru](Images/Pasted%20image%20(13).png)
+  ![Ping Fuyutsuki & Shigeru](Images/soal2-ping-fuyutsuki-shigeru.png)
 - **Cabang Asuka & Hikari**:  
-  ![Ping Asuka & Hikari](Images/Pasted%20image%20(14).png)
+  ![Ping Asuka & Hikari](Images/soal2-ping-asuka-hikari.png)
 - **Cabang Yui**:  
-  ![Ping Yui](Images/Pasted%20image%20(15).png)
+  ![Ping Yui](Images/soal2-ping-yui-branch.png)
 
 ---
 
@@ -70,7 +70,7 @@ Routing statis diatur dengan prinsip hierarki efisien:
   - **Lilith** (`10.85.4.74`)
   - **Sachiel** (`10.85.3.130`)
   - **Comm-Net** (`10.85.2.2`)  
-  ![Ping Armisael Soal 3](Images/Pasted%20image%20(16).png)
+  ![Ping Armisael Soal 3](Images/soal3-routing-armisael-ping.png)
 
 ---
 
@@ -81,9 +81,9 @@ Routing statis diatur dengan prinsip hierarki efisien:
   ```
 - DNS nameserver dikonfigurasi pada `/etc/resolv.conf`.
 - Bukti ping `8.8.8.8` dan domain `deb.debian.org` dari node internal:  
-  ![Ping Internet & Domain](Images/Pasted%20image%20(17).png)
+  ![Ping Internet & Domain](Images/soal4-internet-domain-armisael.png)
 - Bukti counter rule NAT bertambah di Gendow (`iptables -t nat -nvL POSTROUTING`):  
-  ![Counter NAT](Images/Pasted%20image%20(18).png)
+  ![Counter NAT](Images/soal4-gendow-nat-counter.png)
 
 ---
 
@@ -98,9 +98,9 @@ Router Gendo menerapkan firewall stateful:
 
 ### Bukti Aturan & Uji Firewall:
 - Daftar aturan firewall di router Gendo (`iptables -S`):  
-  ![Firewall Gendow](Images/Pasted%20image%20(19).png)
+  ![Firewall Gendow](Images/soal5-gendow-firewall-rules.png)
 - Uji ping ke `8.8.8.8` dari Armisael membuktikan akses internet tetap berjalan di bawah policy DROP:  
-  ![Uji Internet Firewall](Images/Pasted%20image%20(20).png)
+  ![Uji Internet Firewall](Images/soal5-firewall-armisael-ping.png)
 
 ---
 
@@ -108,7 +108,7 @@ Router Gendo menerapkan firewall stateful:
 - Seluruh 25 node client non-router diberi IP statis dan default gateway sesuai aturan glosarium.
 - Konfigurasi dipatenkan dengan script `/root/<nama>.sh`, auto-hook `/root/.bashrc`, dan `/etc/network/interfaces`.
 - Bukti `ip -br a` dan ping ke gateway Misato (`10.85.4.65`) pada **Unit-01**:  
-  ![Unit-01 Gateway Ping](Images/Pasted%20image%20(21).png)
+  ![Unit-01 Gateway Ping](Images/soal6-unit01-ip-gateway-ping.png)
 
 ---
 
@@ -120,9 +120,9 @@ Layanan listener netcat diaktifkan pada:
 
 ### Bukti Pengiriman & Penerimaan Pesan:
 - Lilith mengirim pesan ke keempat listener:  
-  ![Lilith Kirim MAGI](Images/Pasted%20image%20(23).png)
+  ![Lilith Kirim MAGI](Images/soal7-lilith-send-magi.png)
 - Pesan diterima di masing-masing node MAGI:  
-  ![MAGI Menerima Pesan](Images/Pasted%20image%20(22).png)
+  ![MAGI Menerima Pesan](Images/soal7-magi-received-messages.png)
 
 ---
 
@@ -134,4 +134,4 @@ Layanan normal diuji dari node Lilith:
 - **Port 22 (Tidak Dilayani)**: Langsung gagal (`Connection refused`), tidak menggantung.
 
 ### Bukti Uji Layanan:
-![Uji Layanan Soal 8](Images/Pasted%20image%20(24).png)
+![Uji Layanan Soal 8](Images/soal8-service-verification.png)
