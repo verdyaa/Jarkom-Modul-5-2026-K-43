@@ -1,0 +1,139 @@
+================================================================================
+PRAKTIKUM MODUL 5 JARINGAN KOMPUTER 2026 (KELOMPOK B K-43)
+BABAK 2: SABOTASE DAN HANTU MAGI (SOAL 9 - 12)
+================================================================================
+
+--------------------------------------------------------------------------------
+SOAL 9: JALUR BELAKANG DIUTAK-ATIK
+--------------------------------------------------------------------------------
+Gejala:
+Lilith tidak mendapat jawaban ping dari Armisael, padahal Armisael masih bisa 
+ping gateway-nya sendiri. Script sabotase `break_routing.sh` dijalankan di Shigeru.
+
+Penyebab Sabotase (di Shigeru):
+1. IP Forwarding dimatikan (`sysctl -w net.ipv4.ip_forward=0`).
+2. Rute blackhole dipasang untuk subnet Monolith (`ip route add blackhole 10.85.4.72/29`).
+3. Policy routing diarahkan ke table 100 yang mem-blackhole default route (`ip rule add ... lookup 100`).
+4. Default route utama diarahkan ke interface yang salah (eth2 / arah Makoto) bukan ke Gendow (eth0 via 10.85.4.113).
+
+Langkah Perbaikan (di Router Shigeru):
+```bash
+# 1. Aktifkan kembali IP forwarding
+sysctl -w net.ipv4.ip_forward=1
+
+# 2. Hapus rute blackhole
+ip route del blackhole 10.85.4.72/29 2>/dev/null
+
+# 3. Hapus policy routing table 100
+ip rule del lookup 100 2>/dev/null
+ip route flush table 100 2>/dev/null
+
+# 4. Pastikan default route mengarah ke Gendow via 10.85.4.113 (eth0)
+ip route replace default via 10.85.4.113 dev eth0
+```
+
+Verifikasi:
+- Dari Lilith: `ping -c 3 10.85.4.83` (Armisael) -> SUCCEED (0% packet loss).
+
+--------------------------------------------------------------------------------
+SOAL 10: PARA PILOT TERKUNCI DI DALAM
+--------------------------------------------------------------------------------
+Gejala:
+Unit-01, Unit-02, Unit-00 di Cage tidak bisa ping 8.8.8.8. Padahal Spy di Intel
+bisa internetan dengan normal, dan ping Cage ke Lilith (internal) normal.
+Script sabotase `break_nat.sh` dijalankan di Misato dan Gendo.
+
+Penyebab Sabotase:
+1. Di Misato:
+   Dipasang rule SNAT liar pada POSTROUTING:
+   `iptables -t nat -A POSTROUTING -s 10.85.4.64/29 ! -d 10.85.0.0/16 -o eth0 -j SNAT --to-source 172.31.99.1`
+   Ini mengubah source IP subnet Cage menjadi IP asing sebelum dikirim ke Gendow.
+2. Di Gendow:
+   Dipasang rule RETURN pada index 1 chain POSTROUTING table NAT:
+   `iptables -t nat -I POSTROUTING 1 -s 10.85.4.64/29 -o eth7 -j RETURN`
+   Paket Cage yang keluar interface WAN (eth7) melompati rule MASQUERADE.
+
+Jawaban Pertanyaan Laporan:
+1. Kenapa Cage terdampak tapi Intel (Spy) tidak?
+   Sabotase `break_nat.sh` secara spesifik menargetkan subnet Cage ($CAGE = 10.85.4.64/29).
+   Intel/Spy berada di subnet 10.85.4.100/30 di bawah router Kaji. Trafik Spy tidak
+   diubah IP asalnya oleh Misato dan tidak di-RETURN oleh Gendow, sehingga tetap terkena
+   rule default MASQUERADE di Gendow.
+2. Di router mana saja translasi alamat sumber (NAT) seharusnya dilakukan?
+   HANYA di router Gendow pada interface dinamis WAN (eth7). Router internal Geofront
+   (Misato, Kaji, Ritsuko, Shigeru, dsb.) bertugas melakukan murni IP routing antar-subnet
+   internal dan TIDAK BOLEH melakukan SNAT/MASQUERADE.
+
+Langkah Perbaikan:
+- Di Misato:
+  ```bash
+  iptables -t nat -F
+  ```
+- Di Gendow:
+  ```bash
+  iptables -t nat -D POSTROUTING -s 10.85.4.64/29 -o eth7 -j RETURN
+  ```
+
+Verifikasi:
+- Dari Unit-01: `ping -c 3 8.8.8.8` -> SUCCEED (0% packet loss).
+
+--------------------------------------------------------------------------------
+SOAL 11: CASPER HARUS JADI HANTU
+--------------------------------------------------------------------------------
+Kebutuhan:
+- Tidak ada perangkat lain yang boleh mem-ping Casper (termasuk satu switch).
+- Casper tetap boleh mem-ping siapa saja.
+- Layanan TCP port 5000 di Casper tetap hidup dan bisa diakses.
+
+Konfigurasi (di Magi-Casper):
+```bash
+iptables -F INPUT
+iptables -A INPUT -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+iptables -A INPUT -p icmp --icmp-type echo-request -j DROP
+```
+
+Verifikasi:
+- Dari Magi-Balthasar: `ping -c 3 10.85.4.58` (Casper) -> GAGAL (100% loss).
+- Dari Lilith: `ping -c 3 10.85.4.58` (Casper) -> GAGAL (100% loss).
+- Dari Magi-Casper: `ping -c 3 10.85.4.59` (Balthasar) -> BERHASIL (0% loss).
+- Dari Magi-Casper: `ping -c 3 10.85.4.74` (Lilith) -> BERHASIL (0% loss).
+- Dari Lilith: `nc -w 2 10.85.4.58 5000` -> BERHASIL terhubung.
+
+--------------------------------------------------------------------------------
+SOAL 12: TEKNISI YANG KELEWAT SEMANGAT
+--------------------------------------------------------------------------------
+Gejala:
+Casper tidak bisa ping 8.8.8.8 dan tidak bisa apt-get update. Unit-00 tidak bisa
+menyambung ke TCP 5000 Casper. Ping ke Casper tetap ditolak (stealth).
+Script sabotase `break_fw.sh` dijalankan di Magi-Casper.
+
+Penyebab Sabotase (di Magi-Casper):
+1. `iptables -A OUTPUT -p udp --dport 53 -j DROP`:
+   Memblokir request DNS query port 53 keluar dari Casper, sehingga domain repo tidak bisa di-resolve saat apt-get update.
+2. `iptables -P INPUT DROP` tanpa rule conntrack:
+   Semua paket masuk ditolak. Akibatnya, paket balasan (echo-reply dari ping 8.8.8.8, SYN-ACK saat apt-get update) terbuang oleh INPUT DROP.
+3. Tidak ada rule ACCEPT untuk TCP port 5000:
+   Koneksi masuk dari Unit-00 ke layanan listener TCP 5000 terbuang oleh INPUT DROP.
+
+Langkah Perbaikan (di Magi-Casper):
+```bash
+# 1. Buka blokir DNS pada chain OUTPUT
+iptables -D OUTPUT -p udp --dport 53 -j DROP 2>/dev/null
+
+# 2. Izinkan paket balasan (stateful firewall) pada baris pertama INPUT
+iptables -I INPUT 1 -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+
+# 3. Izinkan akses masuk ke layanan TCP port 5000
+iptables -A INPUT -p tcp --dport 5000 -j ACCEPT
+
+# 4. Pastikan policy INPUT tetap DROP dan loopback tetap aktif
+iptables -P INPUT DROP
+iptables -A INPUT -i lo -j ACCEPT 2>/dev/null
+```
+
+Verifikasi:
+- Dari Magi-Casper: `ping -c 3 8.8.8.8` -> BERHASIL (0% packet loss).
+- Dari Magi-Casper: `apt-get update` -> BERHASIL (selesai mengunduh indeks repo).
+- Dari Unit-00: `echo "Hello from Unit-00" | nc -q 1 10.85.4.58 5000` -> BERHASIL (terekam di /root/received.log Casper).
+- Dari Unit-00: `ping -c 3 10.85.4.58` -> DITOLAK / GAGAL (100% loss, sesuai tujuan hardening).
+================================================================================
