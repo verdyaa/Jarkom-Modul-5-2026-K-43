@@ -135,3 +135,112 @@ Layanan normal diuji dari node Lilith:
 
 ### Bukti Uji Layanan:
 ![Uji Layanan Soal 8](Images/soal8-service-verification.png)
+
+
+---
+
+# Babak 2: Sabotase dan Hantu MAGI
+
+Pada babak ini dilakukan analisis forensik jaringan dan perbaikan terhadap sabotase konfigurasi routing, NAT, dan firewall yang mengganggu operasional Geofront.
+
+---
+
+## Soal 9 — Jalur Belakang Diutak-atik (Routing Sabotage)
+
+### Analisis Sabotase
+Lilith tidak bisa melakukan ping ke Armisael karena script sabotase `break_routing.sh` pada router **Shigeru**:
+1. Menonaktifkan IP forwarding (`sysctl -w net.ipv4.ip_forward=0`).
+2. Memasang rute blackhole untuk subnet Monolith (`ip route add blackhole 10.85.4.72/29`).
+3. Mengarahkan policy routing ke table 100 dengan default route blackhole (`ip rule add ... lookup 100`).
+4. Mengarahkan default route utama ke interface yang salah (`eth2` arah Makoto) bukan ke Gendow (`eth0`).
+
+### Langkah Perbaikan di Shigeru:
+```bash
+sysctl -w net.ipv4.ip_forward=1
+ip route del blackhole 10.85.4.72/29 2>/dev/null
+ip rule del lookup 100 2>/dev/null
+ip route flush table 100 2>/dev/null
+ip route replace default via 10.85.4.113 dev eth0
+```
+
+### Bukti Gejala, Perbaikan, & Verifikasi:
+- Gejala Lilith ping Armisael gagal saat sabotase aktif:  
+  ![Lilith Ping Armisael Gagal](Images/soal9-shigeru-sabotase-fail.png)
+- Eksekusi langkah perbaikan di router Shigeru:  
+  ![Perbaikan Shigeru](Images/soal9-shigeru-repair-cmd.png)
+- Bukti verifikasi Lilith berhasil ping Armisael kembali (0% packet loss):  
+  ![Lilith Ping Armisael Berhasil](Images/soal9-lilith-ping-armisael-success.png)
+
+---
+
+## Soal 10 — Para Pilot Terkunci di Dalam (NAT Sabotage)
+
+### Analisis Sabotase & Pertanyaan Laporan
+1. **Mengapa Cage tidak bisa akses internet sedangkan Intel (Spy) bisa?**
+   - **Di Misato**: Dipasang rule SNAT liar yang mengubah source IP Cage (`10.85.4.64/29`) menjadi `172.31.99.1` sebelum dikirim ke Gendow. Karena Gendow hanya me-NAT prefix internal Geofront (`10.85.0.0/16`), paket Cage tidak di-masquerade.
+   - **Di Gendow**: Dipasang rule `RETURN` pada urutan pertama `POSTROUTING` untuk subnet Cage (`-s 10.85.4.64/29 -o eth7 -j RETURN`), mem-bypass rule `MASQUERADE`.
+   - **Intel (Spy)** tetap bisa internetan karena Spy berada di subnet `10.85.4.100/30` di bawah router Kaji. Sabotase secara spesifik hanya menargetkan subnet Cage, sehingga trafik Spy tetap utuh dan lolos masquerade di Gendow.
+2. **Di router mana saja translasi alamat sumber (NAT) seharusnya dilakukan?**
+   - **Hanya di router Gendow** pada interface dinamis WAN (`eth7`). Router internal Geofront (seperti Misato, Kaji, Ritsuko, Shigeru, dll.) bertugas melakukan *pure IP routing* antar-subnet internal dan **tidak boleh** melakukan translasi alamat IP (SNAT).
+
+### Langkah Perbaikan:
+- **Di router Misato**: Hapus rule SNAT liar (`iptables -t nat -F`).
+- **Di router Gendow**: Hapus rule RETURN bypass (`iptables -t nat -D POSTROUTING -s 10.85.4.64/29 -o eth7 -j RETURN`).
+
+### Bukti Perbaikan & Uji Internet:
+- Eksekusi perbaikan rule RETURN di router Gendow:  
+  ![Perbaikan NAT Gendow](Images/soal10-gendow-nat-repair.png)
+- Bukti Unit-01 berhasil melakukan ping ke `8.8.8.8` (0% packet loss):  
+  ![Unit-01 Ping Internet Berhasil](Images/soal10-unit01-ping-internet-success.png)
+
+---
+
+## Soal 11 — Casper Harus Jadi Hantu (ICMP Stealth)
+
+### Konfigurasi Firewall Stealth di Magi-Casper:
+Casper tidak boleh merespon ping masuk dari siapapun (termasuk tetangga satu switch), namun Casper tetap bisa melakukan ping keluar ke siapa saja dan port TCP 5000 tetap melayani koneksi.
+```bash
+iptables -F INPUT
+iptables -A INPUT -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+iptables -A INPUT -p icmp --icmp-type echo-request -j DROP
+```
+
+### Bukti Uji Stealth ICMP:
+- Ping dari Balthasar ke Casper gagal (100% packet loss):  
+  ![Balthasar Ping Casper Gagal](Images/soal11-balthasar-ping-casper-fail.png)
+- Ping dari Lilith ke Casper gagal (100% packet loss):  
+  ![Lilith Ping Casper Gagal](Images/soal11-lilith-ping-casper-fail.png)
+- Ping dari Casper ke Balthasar berhasil (0% packet loss):  
+  ![Casper Ping Balthasar Berhasil](Images/soal11-casper-ping-balthasar-success.png)
+- Ping dari Casper ke Lilith berhasil (0% packet loss):  
+  ![Casper Ping Lilith Berhasil](Images/soal11-casper-ping-lilith-success.png)
+
+---
+
+## Soal 12 — Teknisi yang Kelewat Semangat (Firewall Hardening)
+
+### Analisis Kerusakan Script Hardening:
+1. `iptables -A OUTPUT -p udp --dport 53 -j DROP`: Memblokir DNS query keluar dari Casper sehingga `apt-get update` gagal me-resolve domain.
+2. `iptables -P INPUT DROP` tanpa rule conntrack: Menolak seluruh paket masuk, termasuk balasan ping dan balasan HTTP repositori.
+3. Tidak ada rule ACCEPT untuk TCP port 5000: Menolak koneksi netcat masuk dari Unit-00.
+
+### Langkah Perbaikan di Magi-Casper (Mempertahankan Hardening & Policy DROP):
+```bash
+iptables -D OUTPUT -p udp --dport 53 -j DROP 2>/dev/null
+iptables -I INPUT 1 -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+iptables -A INPUT -p tcp --dport 5000 -j ACCEPT
+iptables -P INPUT DROP
+iptables -A INPUT -i lo -j ACCEPT 2>/dev/null
+```
+
+### Bukti Perbaikan & Uji Layanan:
+- Eksekusi perbaikan aturan firewall di Magi-Casper:  
+  ![Perbaikan Firewall Casper](Images/soal12-casper-repair-cmd.png)
+- Casper berhasil ping ke `8.8.8.8` (0% packet loss):  
+  ![Casper Ping Internet Berhasil](Images/soal12-casper-ping-internet.png)
+- Casper berhasil menjalankan `apt-get update`:  
+  ![Casper Apt-get Update](Images/soal12-casper-apt-update.png)
+- Unit-00 berhasil menyambung ke TCP port 5000 dan ping ke Casper tetap ditolak (100% loss):  
+  ![Unit NC dan Ping Drop](Images/soal12-unit-nc-and-ping-drop.png)
+- Pesan dari Unit-00 terekam di `/root/received.log` Casper:  
+  ![Casper Received Log](Images/soal12-casper-received-log.png)
