@@ -244,3 +244,145 @@ iptables -A INPUT -i lo -j ACCEPT 2>/dev/null
   ![Unit NC dan Ping Drop](Images/soal12-unit-nc-and-ping-drop.png)
 - Pesan dari Unit-00 terekam di `/root/received.log` Casper:  
   ![Casper Received Log](Images/soal12-casper-received-log.png)
+
+
+---
+
+# Babak 3: Mengamankan MAGI dan Zona Sensitif
+
+Pada babak ini diterapkan aturan keamanan tingkat lanjut menggunakan `iptables` pada layanan MAGI, jadwal akses berbasis waktu, rate-limiting ICMP, logging & penolakan port scanning, pengalihan paket DNAT, perlindungan perimeter zona sensitif, serta isolasi total node pengkhianat.
+
+---
+
+## Soal 13 — Brankas Balthasar
+
+Hanya **Magi-Casper** (`10.85.4.58`) dan seluruh **Pilot** (`Unit-01`, `Unit-02`, `Unit-00`, `Sachiel`) yang diizinkan mengakses TCP port `5000` dan `5001` di **Magi-Balthasar** (`10.85.4.59`). Node lain (termasuk tetangga satu switch seperti Melchior) langsung ditolak seketika menggunakan `REJECT --reject-with tcp-reset`.
+- Script: [`scripts/Babak3/soal13-balthasar.sh`](scripts/Babak3/soal13-balthasar.sh)
+
+### Bukti Verifikasi:
+- Aturan firewall & uji ping internet (`8.8.8.8`) di **Magi-Balthasar**:  
+  ![Firewall Balthasar](Images/soal13-balthasar-fw-and-ping.png)
+- **Unit-01** berhasil menyambung ke port `5000` dan `5001`:  
+  ![Unit-01 NC Berhasil](Images/soal13-unit01-nc-success.png)
+- **Lilith** ditolak seketika (`Connection refused`):  
+  ![Lilith NC Ditolak](Images/soal13-lilith-nc-refused.png)
+- **Magi-Melchior** (satu switch) ditolak seketika (`Connection refused`):  
+  ![Melchior NC Ditolak](Images/soal13-melchior-nc-refused.png)
+
+---
+
+## Soal 14 — Jam Kunjungan Sang Pinguin
+
+Akses `ping` dan TCP port `80` ke **Pen-Pen** (`10.85.3.194`) dibatasi berdasarkan jadwal UTC (WIB – 7 jam) dengan variabel `PILOT_START`, `PILOT_STOP`, `PILOT_DAYS`, `STAF_START`, dan `STAF_STOP` di awal script:
+- **Pilot**: `08.00–16.00 WIB` (`01:00–09:00 UTC`), Senin–Jumat.
+- **Staf Geofront**: `17.00–23.00 WIB` (`10:00–16:00 UTC`), setiap hari.
+- **Terduga Dummy System** (`Dummy-Plug`, `Entry-Plug`, `Spy`): selalu ditolak.
+- **Lainnya**: bebas tanpa batasan.
+- Script: [`scripts/Babak3/soal14-pen-pen.sh`](scripts/Babak3/soal14-pen-pen.sh)
+
+### Bukti Uji Kondisi 1 (Jadwal Cocok dengan Jam Sekarang):
+- **Unit-01** berhasil ping Pen-Pen:  
+  ![Soal 14 Cocok Unit-01](Images/soal14-cocok-unit01-success.png)
+- **Lilith** berhasil ping Pen-Pen:  
+  ![Soal 14 Cocok Lilith](Images/soal14-cocok-lilith-success.png)
+- **Spy** (Dummy System) tetap ditolak (100% loss):  
+  ![Soal 14 Cocok Spy](Images/soal14-cocok-spy-fail.png)
+
+### Bukti Uji Kondisi 2 (Jadwal Tidak Cocok dengan Jam Sekarang):
+- **Unit-01** ditolak (100% loss):  
+  ![Soal 14 Tidak Cocok Unit-01](Images/soal14-tidak-cocok-unit01-fail.png)
+- **Lilith** ditolak (100% loss):  
+  ![Soal 14 Tidak Cocok Lilith](Images/soal14-tidak-cocok-lilith-fail.png)
+- **Spy** tetap ditolak (100% loss):  
+  ![Soal 14 Tidak Cocok Spy](Images/soal14-tidak-cocok-spy-fail.png)
+
+---
+
+## Soal 15 — Banjir Ping di Pusat Komando
+
+**Tokyo3-Core** (`10.85.4.106`) dibatasi agar hanya menjawab maksimal **5 ping per detik** (`-m limit --limit 5/sec --limit-burst 5`) dan membuang kelebihannya (`DROP`). Rule diletakkan sebelum `RELATED,ESTABLISHED` agar stream flood ping tidak lolos conntrack, tanpa mengganggu ping keluar dari Tokyo3-Core sendiri.
+- Script: [`scripts/Babak3/soal15-tokyo3-core.sh`](scripts/Babak3/soal15-tokyo3-core.sh)
+
+### Bukti Verifikasi:
+- Flood ping dari **Lilith** (`ping -i 0.1 -c 50 10.85.4.106`) sebagian terbuang:  
+  ![Lilith Flood Ping](Images/soal15-lilith-flood-ping.png)
+- Ping biasa dari **Lilith** setelah jeda ≥ 3 detik berhasil 100%:  
+  ![Lilith Normal Ping](Images/soal15-lilith-normal-ping.png)
+- Counter rule pembuangan (`DROP`) pada `iptables -vnL INPUT` di **Tokyo3-Core** naik:  
+  ![Counter Tokyo3-Core](Images/soal15-tokyo3-core-counter.png)
+
+---
+
+## Soal 16 — Pencuri yang Mencoba Setiap Pintu
+
+Koneksi TCP dari **Dummy-Plug** (`10.85.4.51`) ke port sensitif **22, 23, dan 3306** di **Tokyo3-Core** dicatat dengan log prefix `SCAN-NERV: ` lalu ditolak seketika (`REJECT --reject-with tcp-reset`). Port layanan **80** dan **8080** tetap terbuka.
+- Script: [`scripts/Babak3/soal16-tokyo3-core.sh`](scripts/Babak3/soal16-tokyo3-core.sh)
+
+### Bukti Verifikasi:
+- **Dummy-Plug** `nc` ke port `22, 23, 3306` langsung ditolak (`Connection refused`), sedangkan port `80` dan `8080` berhasil:  
+  ![Dummy-Plug NC Test](Images/soal16-dummy-plug-nc-test.png)
+- Counter rule pencatatan (`LOG prefix "SCAN-NERV: "`) dan `REJECT` di **Tokyo3-Core**:  
+  ![Counter LOG Tokyo3-Core](Images/soal16-tokyo3-core-log-counter.png)
+
+---
+
+## Soal 17 — Sihir Hitam di Jalur Paket
+
+Pada router **Fuyutsuki** (gateway Switch-Terminal), dipasang rule DNAT `PREROUTING` untuk mengalihkan seluruh koneksi TCP dari **Magi-Casper** (`10.85.4.58`) tujuan **Zaruel** (`10.85.4.82`) agar dialihkan diam-diam ke **Pen-Pen** (`10.85.3.194`), tanpa mengalihkan ICMP ping.
+- Script: [`scripts/Babak3/soal17-fuyutsuki.sh`](scripts/Babak3/soal17-fuyutsuki.sh)
+
+### Bukti Verifikasi:
+- **Magi-Casper** mengirim pesan ke IP Zaruel (`10.85.4.82`) port `9000`:  
+  ![Casper Kirim ke Zaruel](Images/soal17-casper-send-zeruel.png)
+- Pesan masuk dan terbaca di **Pen-Pen**:  
+  ![Pen-Pen Menerima Pesan](Images/soal17-penpen-received.png)
+- Log listener di **Zaruel** tetap kosong:  
+  ![Zaruel Kosong](Images/soal17-zaruel-empty.png)
+- Tabel `conntrack` di **Fuyutsuki** membuktikan translasi aliran paket ke `10.85.3.194`:  
+  ![Fuyutsuki Conntrack](Images/soal17-fuyutsuki-conntrack.png)
+
+---
+
+## Soal 18 — Gerbang Monolith dan Radar
+
+Pada router **Shigeru**, diterapkan perimeter berbasis arah datang (`-i eth0`, interface yang menghadap Gendo). Node dari dalam zona bebas memulai koneksi keluar beserta balasannya (`RELATED,ESTABLISHED`), sedangkan koneksi baru dari luar zona ditolak, dengan pengecualian ping dari subnet Terminal (`10.85.4.56/29`).
+- Script: [`scripts/Babak3/soal18-shigeru.sh`](scripts/Babak3/soal18-shigeru.sh)
+
+### Bukti Verifikasi:
+- Daftar aturan `FORWARD` di **Shigeru**:  
+  ![Shigeru Forward Rules](Images/soal18-shigeru-forward-rules.png)
+- Ping **Magi-Casper** ke **Zaruel** berhasil (0% loss):  
+  ![Casper Ping Zaruel Berhasil](Images/soal18-casper-ping-zaruel-success.png)
+- Ping **Lilith** ke **Zaruel** gagal (100% loss):  
+  ![Lilith Ping Zaruel Gagal](Images/soal18-lilith-ping-zaruel-fail.png)
+
+---
+
+## Soal 19 — Hukuman untuk Sang Pengkhianat
+
+**Armisael** (`10.85.4.83`) diisolasi total dari seluruh lalu lintas masuk maupun keluar (termasuk ke gateway, luar jaringan, dan tetangga satu switch **Zaruel**) **tanpa mengubah konfigurasi di dalam Armisael**:
+- Blokir trafik ke/dari Armisael di router **Shigeru** (`INPUT`, `OUTPUT`, `FORWARD`) dan di tetangga satu switch **Zaruel** (`INPUT`, `OUTPUT`).
+- Scripts: [`scripts/Babak3/soal19-shigeru.sh`](scripts/Babak3/soal19-shigeru.sh) & [`scripts/Babak3/soal19-zaruel.sh`](scripts/Babak3/soal19-zaruel.sh)
+
+### Bukti Verifikasi:
+- **Armisael** gagal ping & `nc` ke Seele (`8.8.8.8` / TCP 53), Zaruel (`10.85.4.82` / TCP 9000), dan Lilith (`10.85.4.74` / TCP 9000):  
+  ![Armisael Terisolasi](Images/soal19-armisael-isolated-fail.png)
+- **Zaruel** tetap bebas mengakses Seele dan Lilith (ping & `nc` berhasil):  
+  ![Zaruel Bebas](Images/soal19-zaruel-allowed-success.png)
+
+---
+
+# Babak Final: Siap Dihancurkan, Siap Dibangun Lagi
+
+## Soal 20 — Uji Kebakaran Geofront
+
+Uji pemulihan (*idempotent fire drill*) dilakukan pada 3 node (**Fuyutsuki** sebagai router, **Magi-Balthasar**, dan **Tokyo3-Core**). Rule disimpan dengan `iptables-save > /root/<nama>.rules`, kemudian seluruh rule filter & nat serta rute default dihapus, lalu dipulihkan **dua kali berturut-turut** menggunakan `iptables-restore` dan `/root/<nama>.sh`.
+- Script: [`scripts/BabakFinal/soal20-uji-kebakaran.sh`](scripts/BabakFinal/soal20-uji-kebakaran.sh)
+
+### Bukti Pemulihan Idempoten (Jumlah Baris `filter` & `nat` Identik + Ping Internet Berhasil):
+- **Fuyutsuki** (Router): `R1 == R2` (`filter=3`, `nat=5`) & ping `8.8.8.8` berhasil:  
+  ![Fire Drill Fuyutsuki](Images/soal20-fuyutsuki-fire-drill.png)
+- **Magi-Balthasar**: `R1 == R2` (`filter=11`, `nat=4`) & ping `8.8.8.8` berhasil:  
+  ![Fire Drill Balthasar](Images/soal20-balthasar-fire-drill.png)
+- **Tokyo3-Core**: `R1 == R2` (`filter=9`, `nat=4`) & ping `8.8.8.8` berhasil:  
+  ![Fire Drill Tokyo3-Core](Images/soal20-tokyo3-core-fire-drill.png)
